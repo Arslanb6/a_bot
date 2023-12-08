@@ -5,6 +5,8 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
+from launch.actions import RegisterEventHandler
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
@@ -59,12 +61,23 @@ def generate_launch_description():
         executable="spawner.py",
         arguments=["diff_cont"],
     )
-
+    delayed_diff_drive_spawner = RegisterEventHandler(
+         event_handler=OnProcessExit(
+             target_action=spawn_entity,
+             on_exit=[diff_drive_spawner],
+         )
+     )
     joint_broad_spawner = Node(
         package="controller_manager",
         executable="spawner.py",
         arguments=["joint_broad"],
     )
+    delayed_joint_broad_spawner = RegisterEventHandler(
+         event_handler=OnProcessExit(
+             target_action=diff_drive_spawner,
+             on_exit=[joint_broad_spawner],
+         )
+     )
 
     # Code for delaying a node (I haven't tested how effective it is)
     # 
@@ -91,6 +104,6 @@ def generate_launch_description():
       #  twist_mux,
         gazebo,
         spawn_entity,
-        diff_drive_spawner,
-        joint_broad_spawner
+        delayed_diff_drive_spawner,
+        delayed_joint_broad_spawner
     ])
